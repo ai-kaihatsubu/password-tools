@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<title>パスワード生成ツール｜安全なパスワードをワンクリック作成｜ツール工房</title>
+<meta name="description" content="crypto.getRandomValuesによる安全な乱数で、推測されにくいパスワードを即作成。文字種・長さを自由に設定し、強度メーター付き。処理は端末内のみで外部送信なし。名前を付けて端末内にローカル保存も可能（暗号化なし）。">
+<link rel="canonical" href="https://ai-kaihatsubu.github.io/password-generator/">
+
+<!-- OGP -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="パスワード生成ツール｜ツール工房">
+<meta property="og:description" content="安全なパスワードをワンクリックで作成。crypto.getRandomValuesによる強力な乱数生成、強度メーター、まとめて生成、名前付きローカル保存に対応。">
+<meta property="og:url" content="https://ai-kaihatsubu.github.io/password-generator/">
+<meta property="og:image" content="https://ai-kaihatsubu.github.io/password-generator/icons/icon-512.svg">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2563eb">
+<link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+
+<!-- JSON-LD: WebApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "パスワード生成ツール",
+  "description": "crypto.getRandomValuesによる安全な乱数で推測されにくいパスワードを作成できる無料のWebツール。文字種・長さを自由に設定でき、強度メーターやまとめて生成に対応。処理は端末内のみで外部送信は行わない。名前を付けて端末内にローカル保存も可能（暗号化なし）。",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "JPY"
+  }
+}
+</script>
+
+<link rel="stylesheet" href="style.css">
+
+<!-- AdSense配信スクリプトは monetization.js が動的に注入します（このHTMLは編集不要）。
+     有効化は monetization.js の CONFIG.ADSENSE_CLIENT_ID / ADSENSE_SLOTS を設定するだけ。
+     ※ここに手動で <script ...adsbygoogle...> を貼ると二重読み込みになるため貼らないこと。 -->
+</head>
+<body>
+
+<a class="skip-link" href="#main">本文へスキップ</a>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <h1 class="logo">パスワード生成ツール</h1>
+    <nav class="header-actions" aria-label="表示設定">
+      <button id="theme-toggle" type="button" aria-label="ダーク/ライトモード切替" aria-pressed="false">
+        <span aria-hidden="true">🌙</span>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<!-- AdSense 広告枠（コンテンツ上） -->
+<div class="ad-slot ad-slot--top" data-ad-position="top" aria-hidden="true">
+  <!-- <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+       data-ad-slot="XXXXXXXXXX"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script> -->
+  <p class="ad-placeholder">広告スペース（準備中）</p>
+</div>
+
+<main id="main" class="container">
+
+  <section class="tool-section" aria-labelledby="tool-heading">
+    <h2 id="tool-heading">パスワードを生成</h2>
+    <div id="tool-root">
+
+      <!-- メイン出力 -->
+      <div class="pw-output">
+        <label for="password-output" class="visually-hidden">生成されたパスワード</label>
+        <input type="text" id="password-output" class="pw-output-field" readonly
+               aria-describedby="strength-label" autocomplete="off" spellcheck="false">
+        <button type="button" id="copy-main-btn" class="btn btn-secondary pw-copy-btn">
+          コピー
+        </button>
+        <button type="button" id="regenerate-btn" class="btn btn-primary pw-regen-btn" aria-label="パスワードを再生成">
+          <span aria-hidden="true">↻</span> 生成
+        </button>
+      </div>
+      <p id="copy-feedback" class="copy-feedback" role="status" aria-live="polite"></p>
+
+      <!-- 名前を付けて保存 -->
+      <div class="save-row">
+        <label for="save-name-input" class="visually-hidden">パスワードの名前/用途</label>
+        <input type="text" id="save-name-input" class="save-name-input"
+               placeholder="名前/用途（例: Gmail、社内システム）" maxlength="60" autocomplete="off">
+        <button type="button" id="save-password-btn" class="btn btn-secondary">このパスワードを保存</button>
+      </div>
+      <p id="save-feedback" class="copy-feedback" role="status" aria-live="polite"></p>
+
+      <!-- 強度メーター -->
+      <div class="strength-meter">
+        <div class="strength-bar-track" aria-hidden="true">
+          <div id="strength-bar" class="strength-bar-fill"></div>
+        </div>
+        <p id="strength-label" class="strength-label">強度: -</p>
+      </div>
+
+      <!-- 長さ設定 -->
+      <div class="control-row">
+        <label for="length-slider" class="control-label">長さ</label>
+        <input type="range" id="length-slider" min="4" max="64" value="16" step="1"
+               aria-describedby="length-value">
+        <input type="number" id="length-input" min="4" max="64" value="16" step="1"
+               class="length-number" aria-label="パスワードの長さ（数値入力）">
+      </div>
+
+      <!-- 文字種トグル -->
+      <fieldset class="charset-fieldset">
+        <legend>使用する文字種</legend>
+        <div class="charset-grid">
+          <label class="checkbox-row">
+            <input type="checkbox" id="opt-uppercase" checked>
+            <span>英大文字（A-Z）</span>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="opt-lowercase" checked>
+            <span>英小文字（a-z）</span>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="opt-numbers" checked>
+            <span>数字（0-9）</span>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="opt-symbols" checked>
+            <span>記号（!@#$%^&amp;* など）</span>
+          </label>
+        </div>
+        <p id="charset-error" class="field-error" role="alert" hidden>
+          少なくとも1つの文字種を選択してください。
+        </p>
+      </fieldset>
+
+      <!-- 追加オプション -->
+      <fieldset class="charset-fieldset">
+        <legend>オプション</legend>
+        <div class="charset-grid">
+          <label class="checkbox-row">
+            <input type="checkbox" id="opt-exclude-ambiguous">
+            <span>紛らわしい文字を除外（0, O, 1, l, I など）</span>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="opt-require-each" checked>
+            <span>選択した各文字種を最低1文字含める</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <!-- まとめて生成 -->
+      <div class="bulk-section">
+        <div class="bulk-header">
+          <h3 class="bulk-title">まとめて生成</h3>
+          <button type="button" id="bulk-generate-btn" class="btn btn-secondary">5個まとめて生成</button>
+        </div>
+        <p id="bulk-limit-note" class="bulk-limit-note" hidden>
+          無料版では5個までです。Proで上限を解放できます。
+        </p>
+        <ul id="bulk-list" class="bulk-list" aria-live="polite"></ul>
+      </div>
+
+      <!-- 保存したパスワード -->
+      <div class="saved-section" id="saved-section">
+        <h3 class="saved-title">保存したパスワード</h3>
+        <p id="saved-privacy-note" class="saved-privacy-note">
+          保存したパスワードはこの端末のブラウザ内（localStorage）に保存されます。暗号化はされず外部送信もしません。共有PCでは使用しないでください。重要なパスワードは専用のパスワード管理ツールのご利用を推奨します。
+        </p>
+        <p id="saved-empty" class="saved-empty">まだ保存はありません。生成→名前を付けて保存できます。</p>
+        <ul id="saved-list" class="saved-list" aria-live="polite"></ul>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- アフィリエイト枠 -->
+  <aside class="affiliate-box" aria-labelledby="affiliate-heading">
+    <h2 id="affiliate-heading">おすすめのパスワード管理ツール</h2>
+    <p class="pr-label">[PR]</p>
+    <ul class="affiliate-list" id="affiliate-list">
+      <!-- monetization.js で動的に生成 -->
+    </ul>
+  </aside>
+
+  <!-- Pro案内 -->
+  <section class="pro-box" aria-labelledby="pro-heading">
+    <h2 id="pro-heading">Proプラン（¥480 買い切り）</h2>
+    <p>広告非表示・まとめて生成の上限解放（最大50個）・除外ルールの保存ができます。</p>
+    <button id="pro-button" type="button" class="btn btn-primary">Proを購入（準備中）</button>
+    <p class="pro-dev-note">
+      <button id="pro-dev-toggle" type="button" class="btn btn-secondary">Proフラグを切替（開発用）</button>
+    </p>
+  </section>
+
+  <!-- 使い方・FAQ -->
+  <section class="guide-section" aria-labelledby="guide-heading">
+    <h2 id="guide-heading">使い方</h2>
+    <ol>
+      <li>「長さ」のスライダーまたは数値入力で、パスワードの長さ（4〜64文字）を設定します。</li>
+      <li>「使用する文字種」で、英大文字・英小文字・数字・記号のうち使いたい種類にチェックを入れます（最低1種は必須）。</li>
+      <li>必要に応じて「紛らわしい文字を除外」や「各文字種を最低1文字含める」をオンにします。</li>
+      <li>「生成」ボタンでパスワードを作成し、「コピー」ボタンでクリップボードにコピーします。</li>
+      <li>複数まとめて欲しい場合は「まとめて生成」で一覧表示し、各行のコピーボタンを使います。</li>
+    </ol>
+
+    <h2 id="faq-heading">よくある質問（FAQ）</h2>
+
+    <h3>Q. このツールで作ったパスワードは安全ですか？</h3>
+    <p>
+      A. 本ツールは暗号論的に安全な乱数生成API（<code>crypto.getRandomValues</code>）を使用し、
+      偏りを避ける方式で文字を選んでいます。長さを長くし、複数の文字種を組み合わせるほど
+      推測されにくいパスワードになります。ただし、どのツールで生成したパスワードであっても
+      「絶対に解読されない」と保証することはできません。重要なアカウントでは、長いパスワードに加えて
+      二段階認証（2FA）の併用を推奨します。
+    </p>
+
+    <h3>Q. パスワードはどこかに保存されますか？</h3>
+    <p>
+      A. 生成処理はすべて端末内で行われ、外部サーバーへの送信は一切ありません。
+      ブラウザのlocalStorageには「長さ」「文字種」などの設定情報が保存されます。
+      また、画面の「このパスワードを保存」を使うと、生成したパスワードに名前を付けて
+      端末内のlocalStorageにローカル保存することもできます（暗号化なし）。保存しない限り、
+      生成されたパスワードはページを再読み込みすると復元できません。詳しくは
+      <a href="privacy.html">プライバシーポリシー</a>をご覧ください。
+    </p>
+
+    <h3>Q. 保存したパスワードはどこに保存されますか？安全ですか？</h3>
+    <p>
+      A. 「このパスワードを保存」で保存した名前とパスワードは、この端末のブラウザの
+      localStorageに保存されます。暗号化はされておらず、外部に送信されることもありません。
+      共有のパソコンやネットカフェなど不特定多数が使う端末では使用しないでください。
+      重要なパスワードについては、専用のパスワード管理ツールのご利用を推奨します。
+      保存した項目は一覧の「削除」ボタンでいつでも削除できます。
+    </p>
+
+    <h3>Q. 同じパスワードを複数のサービスで使い回してもいいですか？</h3>
+    <p>
+      A. 使い回しは推奨しません。1つのサービスでパスワードが漏えいすると、
+      他のサービスにも不正ログインされるリスクが高まります。サービスごとに
+      異なるパスワードを生成し、パスワード管理ツールでまとめて管理する方法が安全です。
+    </p>
+
+    <h3>Q. どのくらいの長さにすればいいですか？</h3>
+    <p>
+      A. 一般的には12文字以上、できれば16文字以上を推奨します。長さはパスワードの強度に
+      大きく影響します。サービスによって使用できる文字種・最大長に制限がある場合は、
+      その範囲内で可能な限り長く設定してください。
+    </p>
+
+    <h3>Q. 強度メーターはどういう基準ですか？</h3>
+    <p>
+      A. 長さと使用文字種の組み合わせ数から、エントロピー（ビット数）を概算して
+      「弱い・普通・強い・非常に強い」の4段階で表示しています。あくまで目安であり、
+      実際の安全性は使い回しの有無や保管方法にも左右されます。
+    </p>
+
+    <h3>Q. 生成したパスワードを忘れてしまいました。復元できますか？</h3>
+    <p>
+      A. 「このパスワードを保存」で保存していない場合、本ツールはパスワードを保持していないため
+      復元することはできません。生成後は必ずパスワード管理ツールなどに記録・保管するか、
+      画面の保存機能をご利用ください。
+    </p>
+  </section>
+
+</main>
+
+<!-- AdSense 広告枠（コンテンツ下） -->
+<div class="ad-slot ad-slot--bottom" data-ad-position="bottom" aria-hidden="true">
+  <!-- <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+       data-ad-slot="XXXXXXXXXX"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script> -->
+  <p class="ad-placeholder">広告スペース（準備中）</p>
+</div>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <nav aria-label="フッターリンク">
+      <a href="privacy.html">プライバシーポリシー</a>
+      <a href="terms.html">利用規約</a>
+      <a href="operator.html">運営者情報</a>
+    </nav>
+    <p class="copyright">&copy; 2026 ツール工房 ｜ 生成したパスワードの管理は利用者の責任で行ってください。外部送信は行いません。名前を付けて端末内に保存することもできます（暗号化なし）。</p>
+  </div>
+</footer>
+
+<script src="monetization.js" defer></script>
+<script src="app.js" defer></script>
+<script>
+  // PWA: Service Worker 登録（相対パスなのでサブパス公開でも scope が正しく効く）
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>

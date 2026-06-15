@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<title>パスワード強度チェッカー｜安全性を無料で診断｜ツール工房</title>
+<meta name="description" content="入力したパスワードの強度を長さ・文字種・エントロピー・推定解読時間から判定する無料ツール。弱点や改善提案も表示。入力内容は保存・送信されず、端末内のみで処理します。">
+<link rel="canonical" href="https://ai-kaihatsubu.github.io/014-password-strength/">
+
+<!-- OGP -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="パスワード強度チェッカー｜ツール工房">
+<meta property="og:description" content="パスワードの強度を長さ・文字種・エントロピーから判定。弱点指摘と改善提案つき。入力内容は保存・送信しません。">
+<meta property="og:url" content="https://ai-kaihatsubu.github.io/014-password-strength/">
+<meta property="og:image" content="https://ai-kaihatsubu.github.io/014-password-strength/icons/icon-512.svg">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0071e3">
+<link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+
+<!-- JSON-LD: WebApplication -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "パスワード強度チェッカー",
+  "description": "パスワードの強度を長さ・文字種・エントロピー(bit)・推定解読時間から判定し、弱点指摘と改善提案を表示する無料Webツール。入力したパスワードは保存・送信されず、すべて端末内（ブラウザ内）で処理される。",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Any",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "JPY"
+  }
+}
+</script>
+
+<link rel="stylesheet" href="style.css">
+
+<!-- AdSense配信スクリプトは monetization.js が動的に注入します（このHTMLは編集不要）。 -->
+</head>
+<body>
+
+<a class="skip-link" href="#main">本文へスキップ</a>
+
+<header class="site-header">
+  <div class="container header-inner">
+    <h1 class="logo">パスワード強度チェッカー</h1>
+    <nav class="header-actions" aria-label="表示設定">
+      <button id="theme-toggle" type="button" aria-label="ダーク/ライトモード切替" aria-pressed="false">
+        <span aria-hidden="true">🌙</span>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<!-- AdSense 広告枠（コンテンツ上） -->
+<div class="ad-slot ad-slot--top" data-ad-position="top" aria-hidden="true">
+  <!-- <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-6568622993777242"
+       data-ad-slot="XXXXXXXXXX"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script> -->
+  <p class="ad-placeholder">広告スペース（準備中）</p>
+</div>
+
+<main id="main" class="container">
+
+  <section class="tool-section" aria-labelledby="tool-heading">
+    <h2 id="tool-heading">パスワードの強度を診断</h2>
+    <div id="tool-root">
+
+      <p class="privacy-note">
+        <span class="icon" aria-hidden="true">🔒</span>
+        <span>入力したパスワードは<strong>保存・送信されません</strong>。診断はすべてこの端末（ブラウザ）内だけで行われます。</span>
+      </p>
+
+      <label for="password-input" class="sr-only">診断するパスワード</label>
+      <div class="pw-input-row">
+        <input type="password" id="password-input" placeholder="パスワードを入力してください"
+               autocomplete="off" spellcheck="false" autocapitalize="off" aria-describedby="strength-label">
+        <button type="button" id="toggle-visibility-btn" class="pw-toggle-btn" aria-pressed="false">
+          表示
+        </button>
+      </div>
+
+      <!-- 強度メーター -->
+      <div class="strength-meter">
+        <div class="strength-bar-track" aria-hidden="true">
+          <div id="strength-bar" class="strength-bar-fill level-0"></div>
+        </div>
+        <div class="strength-label-row">
+          <p id="strength-label" class="strength-label level-0">強度: 未入力</p>
+          <p id="entropy-value" class="strength-meta"></p>
+        </div>
+        <p id="crack-time" class="strength-meta"></p>
+      </div>
+
+      <!-- 詳細 -->
+      <div class="detail-grid" id="detail-grid" hidden>
+        <div class="detail-card">
+          <p class="detail-label">文字数</p>
+          <p class="detail-value" id="detail-length">0</p>
+        </div>
+        <div class="detail-card">
+          <p class="detail-label">使用文字種</p>
+          <p class="detail-value" id="detail-charsets">-</p>
+        </div>
+        <div class="detail-card">
+          <p class="detail-label">推定エントロピー</p>
+          <p class="detail-value" id="detail-entropy">0 bit</p>
+        </div>
+        <div class="detail-card">
+          <p class="detail-label">推定解読時間（オフライン総当たり想定）</p>
+          <p class="detail-value" id="detail-cracktime">-</p>
+        </div>
+      </div>
+
+      <!-- 文字種チェックリスト -->
+      <h3>使用している文字種</h3>
+      <ul class="charset-checklist" id="charset-checklist">
+        <li id="check-lower"><span class="mark" aria-hidden="true">○</span> 英小文字（a-z）</li>
+        <li id="check-upper"><span class="mark" aria-hidden="true">○</span> 英大文字（A-Z）</li>
+        <li id="check-digit"><span class="mark" aria-hidden="true">○</span> 数字（0-9）</li>
+        <li id="check-symbol"><span class="mark" aria-hidden="true">○</span> 記号（!@#$%など）</li>
+      </ul>
+
+      <!-- 弱点・改善提案 -->
+      <h3>弱点と改善提案</h3>
+      <ul class="issue-list" id="issue-list">
+        <li class="empty-state">パスワードを入力すると、弱点や改善提案がここに表示されます。</li>
+      </ul>
+
+    </div>
+  </section>
+
+  <!-- アフィリエイト枠 -->
+  <aside class="affiliate-box" aria-labelledby="affiliate-heading">
+    <h2 id="affiliate-heading">おすすめのセキュリティツール</h2>
+    <p class="pr-label">[PR]</p>
+    <ul class="affiliate-list" id="affiliate-list">
+      <!-- monetization.js で動的に生成 -->
+    </ul>
+  </aside>
+
+  <!-- Pro案内 -->
+  <section class="pro-box" aria-labelledby="pro-heading">
+    <h2 id="pro-heading">Proプラン（¥480 買い切り）</h2>
+    <p>広告非表示になります。</p>
+    <button id="pro-button" type="button" class="btn btn-primary">Proを購入（準備中）</button>
+  </section>
+
+  <!-- 使い方・FAQ -->
+  <section class="guide-section" aria-labelledby="guide-heading">
+    <h2 id="guide-heading">使い方</h2>
+    <ol>
+      <li>「パスワードを入力してください」の欄に、診断したいパスワードを入力します。</li>
+      <li>強度メーター・エントロピー(bit)・推定解読時間が自動的に表示されます。</li>
+      <li>「使用している文字種」で、現在使われている文字の種類を確認できます。</li>
+      <li>「弱点と改善提案」を確認し、指摘された点を直してより安全なパスワードに改善してください。</li>
+      <li>「表示」ボタンで入力内容の表示・非表示を切り替えられます。</li>
+    </ol>
+
+    <h2 id="faq-heading">よくある質問（FAQ）</h2>
+    <dl class="faq-list">
+      <dt>Q. 入力したパスワードはどこかに保存・送信されますか？</dt>
+      <dd>A. されません。診断処理はすべてこの端末（ブラウザ）内のJavaScriptで行われ、サーバーへの送信や、ブラウザのlocalStorage等への保存も一切行いません。ページを再読み込みすると入力内容は消えます。</dd>
+
+      <dt>Q. 「推定解読時間」はどういう基準で計算していますか？</dt>
+      <dd>A. パスワードの長さと使用している文字種の組み合わせ数からエントロピー（bit）を概算し、それを基に「1秒間に一定回数の組み合わせを試す総当たり攻撃」を想定した場合のおおよその時間を表示しています。実際の攻撃速度は攻撃者の環境やサービス側の対策によって大きく変わるため、あくまで目安です。</dd>
+
+      <dt>Q. 強度の判定基準は何ですか？</dt>
+      <dd>A. 長さ・使用文字種の多さ・エントロピー(bit)に加え、よくある弱いパスワードのパターンや、連続文字・繰り返し文字の有無をチェックし、「非常に弱い」〜「非常に強い」の5段階で判定しています。</dd>
+
+      <dt>Q. 「よくある弱いパスワード」とは具体的に何ですか？</dt>
+      <dd>A. 「password」「123456」「qwerty」「admin」など、漏えいパスワードのリストに頻出する代表的な文字列や、その単純なバリエーションを指します。これらに該当・類似する場合は強度が大きく下がります。</dd>
+
+      <dt>Q. どのくらいの強度を目指せばいいですか？</dt>
+      <dd>A. 一般的には12文字以上、できれば16文字以上で、英大文字・英小文字・数字・記号を組み合わせ、辞書に載っている単語や個人情報（誕生日・名前など）を避けることを推奨します。また、サービスごとに異なるパスワードを使うことが重要です。</dd>
+
+      <dt>Q. このツールだけで安全と判断していいですか？</dt>
+      <dd>A. このツールはあくまで目安です。実際の安全性は、パスワードの使い回しの有無、二段階認証(2FA)の利用、サービス側の漏えい状況などにも大きく左右されます。重要なアカウントでは2FAの併用を強く推奨します。</dd>
+    </dl>
+  </section>
+
+</main>
+
+<!-- AdSense 広告枠（コンテンツ下） -->
+<div class="ad-slot ad-slot--bottom" data-ad-position="bottom" aria-hidden="true">
+  <!-- <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-6568622993777242"
+       data-ad-slot="XXXXXXXXXX"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script> -->
+  <p class="ad-placeholder">広告スペース（準備中）</p>
+</div>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <nav aria-label="フッターリンク">
+      <a href="privacy.html">プライバシーポリシー</a>
+      <a href="terms.html">利用規約</a>
+      <a href="operator.html">運営者情報</a>
+    </nav>
+    <p class="copyright">&copy; 2026 ツール工房 ｜ 入力したパスワードは保存・送信されません。</p>
+  </div>
+</footer>
+
+<script src="monetization.js" defer></script>
+<script src="app.js" defer></script>
+<script>
+  // PWA: Service Worker 登録（相対パスなのでサブパス公開でも scope が正しく効く）
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>
