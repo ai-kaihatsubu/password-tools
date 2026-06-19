@@ -32,6 +32,6 @@
 
 ## 公開前TODO
 
-- `monetization.js`: `AFFILIATE_ITEMS`を実リンクに更新、`STRIPE_PAYMENT_LINK_URL`設定。
+- `monetization.js`: `AFFILIATE_ITEMS`を実リンクに更新、`STRIPE_DONATION_URL`設定。
 - `operator.html`: 運営者情報・特定商取引法に基づく表記の記入。
 - AdSense審査通過後の確認（クライアントIDは設定済み、`<ins>`タグは公開後に有効化）。

@@ -13,7 +13,7 @@
   "use strict";
 
   const STORAGE_KEY_THEME = "tf_theme"; // "light" | "dark"
-  const STORAGE_KEY_PRO = "tf_pro";     // "1" で Pro 有効
+  const STORAGE_KEY_PRO = "tf_pro";     // "1" でお布施済みフラグ（擬似）
   const STORAGE_KEY_SETTINGS = "pwgen_settings"; // 長さ・文字種など設定のみ保存
   const STORAGE_KEY_SAVED = "pwgen_saved_v1"; // 名前付き保存パスワード一覧
 
@@ -65,7 +65,7 @@
     }
   }
 
-  /* ---------- Pro判定（広告非表示など） ---------- */
+  /* ---------- お布施フラグ判定 ---------- */
   function isPro() {
     return localStorage.getItem(STORAGE_KEY_PRO) === "1";
   }

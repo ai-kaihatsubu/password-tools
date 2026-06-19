@@ -1,6 +1,6 @@
-/* ============================================
-   パスワード生成ツール : monetization.js
-   収益3レール（AdSense / アフィリエイト / Stripe）統合エンジン
+﻿/* ============================================
+   ツール置き場 : monetization.js
+   収益3レール（AdSense / アフィリエイト / お布施）統合エンジン
 
    ★ 有効化は下の「設定ブロック(CONFIG)」だけ編集すればOK。HTMLの編集は不要です ★
      - 値が未設定（ca-pub-XXXX / スロットXXXX / 空文字 / example.com）の間は、
@@ -11,47 +11,22 @@
 (function () {
   "use strict";
 
-  // ============================================================
-  // ★★★ 設定ブロック：社長はここだけ編集してください ★★★
-  // ============================================================
   const CONFIG = {
-    // 1) Google AdSense（審査通過後に反映） 例: "ca-pub-1234567890123456"
     ADSENSE_CLIENT_ID: "ca-pub-6568622993777242",
-    // 各広告ユニットのスロットID（管理画面で発行される10桁前後の数字）
-    ADSENSE_SLOTS: { top: "XXXXXXXXXX", bottom: "XXXXXXXXXX" }, // TODO
-
-    // 2) アフィリエイト（[PR]「おすすめのパスワード管理ツール」枠）
-    //    url を実リンクに変えた項目だけが表示されます（example.com のままなら非表示）。
+    ADSENSE_SLOTS: { top: "XXXXXXXXXX", bottom: "XXXXXXXXXX" },
     AFFILIATE_ITEMS: [
-      { label: "TODO: パスワード管理ツール 1（例: 1Password 等）", url: "https://example.com/affiliate-link-password-manager-1" }, // TODO
-      { label: "TODO: パスワード管理ツール 2（例: Bitwarden 等）", url: "https://example.com/affiliate-link-password-manager-2" }, // TODO
-      { label: "TODO: VPNサービス（セキュリティ強化の提案）", url: "https://example.com/affiliate-link-vpn-1" }, // TODO
+      { label: "TODO: おすすめ商品・サービス1", url: "https://example.com/affiliate-placeholder-1" },
+      { label: "TODO: おすすめ商品・サービス2", url: "https://example.com/affiliate-placeholder-2" },
+      { label: "TODO: おすすめ商品・サービス3", url: "https://example.com/affiliate-placeholder-3" },
     ],
-
-    // 3) Stripe（Pro ¥480 買い切り）Payment Link発行後にURLを入れるとボタンが決済ページへ遷移
-    STRIPE_PAYMENT_LINK_URL: "", // TODO 例: "https://buy.stripe.com/XXXXXXXX"
-    PRO_PRICE_LABEL: "¥480 買い切り",
+    STRIPE_DONATION_URL: "",
   };
-  // ============================================================
-  // 以下はエンジン（通常は編集不要）
-  // ============================================================
 
   var isPlaceholderAd   = function (id)  { return !id || /X{4,}/.test(id); };
   var isPlaceholderSlot = function (s)   { return !s  || /X{4,}/.test(s); };
   var isPlaceholderAff  = function (url) { return !url || /example\.com/.test(url); };
 
-  function isProUser() {
-    try {
-      if (window.ToolFactory && typeof window.ToolFactory.isPro === "function") {
-        return window.ToolFactory.isPro();
-      }
-    } catch (e) {}
-    return document.body.classList.contains("is-pro");
-  }
-
-  /* 1) AdSense：実IDがあり、Proでない時のみ動的に有効化 */
   function initAdsense() {
-    if (isProUser()) return;
     if (isPlaceholderAd(CONFIG.ADSENSE_CLIENT_ID)) return;
     if (!document.querySelector("script[data-adsense-loader]")) {
       var s = document.createElement("script");
@@ -79,7 +54,6 @@
     });
   }
 
-  /* 2) アフィリエイト：実URLの項目だけ描画。0件なら枠ごと非表示 */
   function renderAffiliateLinks() {
     var list = document.getElementById("affiliate-list");
     if (!list) return;
@@ -100,23 +74,26 @@
     });
   }
 
-  /* 3) Stripe Payment Link（Proボタン） */
-  function initProButton() {
-    var btn = document.getElementById("pro-button");
+  function initOfuseButton() {
+    var btn = document.getElementById("ofuse-button");
     if (!btn) return;
-    if (CONFIG.STRIPE_PAYMENT_LINK_URL) {
-      btn.textContent = "Proを購入" + (CONFIG.PRO_PRICE_LABEL ? "（" + CONFIG.PRO_PRICE_LABEL + "）" : "");
-    }
     btn.addEventListener("click", function () {
-      if (!CONFIG.STRIPE_PAYMENT_LINK_URL) { alert("Pro機能は準備中です。公開までお待ちください。"); return; }
-      window.open(CONFIG.STRIPE_PAYMENT_LINK_URL, "_blank", "noopener");
+      if (CONFIG.STRIPE_DONATION_URL) {
+        window.open(CONFIG.STRIPE_DONATION_URL, "_blank", "noopener");
+      } else {
+        var status = document.getElementById("ofuse-status");
+        if (status) {
+          status.textContent = "お布施の受付は準備中です。応援ありがとうございます。";
+        } else {
+          alert("お布施の受付は準備中です。応援ありがとうございます。");
+        }
+      }
     });
   }
 
-  /* 起動：アフィリ枠・Proボタンは即時、AdSenseはPro判定確定後(load)に実行 */
   document.addEventListener("DOMContentLoaded", function () {
     renderAffiliateLinks();
-    initProButton();
+    initOfuseButton();
   });
   window.addEventListener("load", function () {
     initAdsense();
